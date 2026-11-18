@@ -64,7 +64,7 @@ export type Walk = {
   feedback?: "good" | "not_good" | null;
 };
 
-export type Visibility = "all" | "women" | "institution" | "hidden";
+export type Visibility = "all" | "students" | "contacts" | "women" | "hidden";
 
 export type Profile = {
   user_id: string;
@@ -115,6 +115,11 @@ export type FormalRequest = {
   id: string;
   report_id: string;
   full_name: string;
+  age: number | null;
+  gender: string | null;
+  address: string | null;
+  incident_date: string | null;
+  incident_place: string | null;
   contact: string;
   preferred_contact: "phone" | "email" | "either";
   statement: string | null;
@@ -130,7 +135,7 @@ export type StudentConcern = {
   created_at: string;
 };
 
-/** A short reference a student can quote to security, e.g. "3F9A-12C0". */
+/** A short reference someone can quote to the safety team, e.g. "3F9A-12C0". */
 export function reportRef(id: string) {
   const s = id.replace(/-/g, "").slice(0, 8).toUpperCase();
   return `${s.slice(0, 4)}-${s.slice(4)}`;

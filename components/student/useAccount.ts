@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { User } from "@supabase/supabase-js";
+import type { EmailOtpType, User } from "@supabase/supabase-js";
 import { getStudentClient } from "@/lib/supabase";
 import type { Profile } from "@/lib/types";
 
@@ -32,6 +32,29 @@ export function useAccount() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [verified, setVerified] = useState(false);
   const [recovering, setRecovering] = useState(false);
+
+  // Email links point to /app?token_hash=…&type=…. We only use the token when
+  // the person taps Continue, so email scanners that open links first (common
+  // with university and work mailboxes) can't use it up.
+  const [linkToken, setLinkToken] = useState<{ tokenHash: string; type: EmailOtpType } | null>(() => {
+    const q = new URLSearchParams(window.location.search);
+    const tokenHash = q.get("token_hash");
+    const type = q.get("type") as EmailOtpType | null;
+    return tokenHash && type ? { tokenHash, type } : null;
+  });
+  // An expired or already-used link comes back with an error in the URL.
+  const [linkError, setLinkError] = useState<string | null>(() => {
+    const h = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const q = new URLSearchParams(window.location.search);
+    const code = h.get("error_code") ?? q.get("error_code");
+    if (!code) return null;
+    return code === "otp_expired"
+      ? "That email link has expired or was already used. Ask for a new code below."
+      : (h.get("error_description") ?? q.get("error_description") ?? "That email link didn't work.").replace(/\+/g, " ");
+  });
+  useEffect(() => {
+    if (linkToken || linkError) window.history.replaceState(null, "", window.location.pathname);
+  }, [linkToken, linkError]);
 
   // Start a session. People who aren't logged in get a silent anonymous one,
   // so they can report without signing up.
@@ -144,6 +167,29 @@ export function useAccount() {
     await supabase.auth.signInAnonymously();
   }, [supabase]);
 
+  const confirmLink = useCallback(async () => {
+    if (!linkToken) return null;
+    const { error: e } = await supabase.auth.verifyOtp({ token_hash: linkToken.tokenHash, type: linkToken.type });
+    if (e) {
+      setLinkToken(null);
+      setLinkError("That link has expired or was already used. Get a 6-digit code instead.");
+      return null;
+    }
+    if (linkToken.type === "recovery") setRecovering(true);
+    setLinkToken(null);
+    return null;
+  }, [supabase, linkToken]);
+
+  const verifyRecovery = useCallback(
+    async (email: string, code: string) => {
+      const { error: e } = await supabase.auth.verifyOtp({ email: email.trim(), token: code, type: "recovery" });
+      if (e) return "That code didn't work. Check it, or ask for a new one.";
+      setRecovering(true);
+      return null;
+    },
+    [supabase],
+  );
+
   const sendReset = useCallback(
     async (email: string) => {
       const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: redirectTo() });
@@ -184,6 +230,12 @@ export function useAccount() {
     verified,
     recovering,
     cancelRecovery: () => setRecovering(false),
+    linkToken,
+    confirmLink,
+    dismissLink: () => setLinkToken(null),
+    linkError,
+    clearLinkError: () => setLinkError(null),
+    verifyRecovery,
     signUp,
     verifyCode,
     resendCode,

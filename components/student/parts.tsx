@@ -12,6 +12,7 @@ export function Page({
   onBack,
   action,
   onTitleLongPress,
+  top,
   children,
 }: {
   title?: string;
@@ -19,6 +20,8 @@ export function Page({
   onBack: () => void;
   action?: ReactNode;
   onTitleLongPress?: () => void;
+  /** Shown between the header and the title, for example the logo. */
+  top?: ReactNode;
   children: ReactNode;
 }) {
   const timer = useRef<number | null>(null);
@@ -39,6 +42,7 @@ export function Page({
         </button>
         {action ?? <span className="header-spacer" />}
       </header>
+      {top}
       {(title || subtitle) && (
         <div className="page-title">
           {title && (

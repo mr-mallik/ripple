@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Ripple",
     short_name: "Ripple",
-    description: "Report harassment on campus and walk home together. Women's safety matters.",
+    description: "Women's safety support: report harassment, get live heads-ups and walk home together.",
     start_url: "/app",
     display: "standalone",
     background_color: "#F6F4EF",

@@ -1,9 +1,9 @@
 "use client";
 
-// The Ripple student app. Everything here runs on real data:
-// reports, heads-ups (Supabase Realtime), formal report requests, accounts,
-// Walk together matching between verified students, trusted contacts,
-// blocks and walk check-ins that campus security can follow.
+// The Ripple app: women's safety support. Everything here runs on real data:
+// reports, heads-ups (Supabase Realtime), formal reports, accounts,
+// Walk together matching between verified users, trusted contacts,
+// blocks and walk check-ins that the safety team can follow.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
@@ -12,7 +12,7 @@ import { Spinner } from "@/components/ui";
 import { getStudentClient } from "@/lib/supabase";
 import { clock, distanceMetres, timeAgo, useDeviceLocation, useNow, type LatLng } from "@/lib/geo";
 import { DESTINATIONS, MEETING_POINTS, WALK_MINUTES, placeName, walkingMinutes } from "@/lib/places";
-import { CAMPUS_SECURITY_HREF, EMERGENCY_CONTACTS, WELLBEING_CONTACTS } from "@/lib/contacts";
+import { SAFETY_TEAM_HREF, EMERGENCY_CONTACTS, WELLBEING_CONTACTS } from "@/lib/contacts";
 import {
   reportRef,
   type Alert,
@@ -43,9 +43,11 @@ import {
   type Section,
 } from "./parts";
 import {
+  AuthLogo,
   EditProfile,
   ForgotPassword,
   IndividualSignup,
+  LinkConfirm,
   LoginForm,
   OrganisationSignup,
   ProfileView,
@@ -113,10 +115,16 @@ const CATEGORIES: { value: ReportCategory; label: string; detail: string }[] = [
   { value: "other", label: "Other", detail: "Something else happened" },
 ];
 
-const VISIBILITY: { value: Visibility; label: string; short: string }[] = [
-  { value: "all", label: "All verified students", short: "Visible to all verified students" },
+const VISIBILITY: { value: Visibility; label: string; short: string; hint?: string }[] = [
+  { value: "all", label: "Verified users", short: "Visible to verified users" },
+  { value: "students", label: "Students only", short: "Visible to students only", hint: "Only verified students can see you." },
+  {
+    value: "contacts",
+    label: "My trusted contacts only",
+    short: "Visible to trusted contacts",
+    hint: "Only people you have added as trusted contacts can see you.",
+  },
   { value: "women", label: "Women only", short: "Visible to women only" },
-  { value: "institution", label: "Students at my university", short: "Visible to students at your university" },
   { value: "hidden", label: "Hidden", short: "Hidden" },
 ];
 const REPORT_REASONS = ["Made me uncomfortable", "Didn't turn up", "Fake profile", "Something else"];
@@ -367,7 +375,7 @@ export default function StudentApp() {
   );
 
   // When a walk together starts (by either person), each of us gets our own
-  // walk record so campus security can follow both.
+  // walk record so the safety team can follow both.
   const current = wt.current;
   useEffect(() => {
     const r = current?.status === "started" ? current : null;
@@ -466,7 +474,7 @@ export default function StudentApp() {
     window.location.assign(
       smsLink(
         contact.phone,
-        `I'm walking to ${w.destination} now and should be there by ${clock(w.expected_by)}. I'm using Ripple's walk check-in, so campus security will know if I don't arrive. Can you keep an eye out for me?`,
+        `I'm walking to ${w.destination} now and should be there by ${clock(w.expected_by)}. I'm using Ripple's walk check-in, so the safety team will know if I don't arrive. Can you keep an eye out for me?`,
       ),
     );
   }
@@ -590,7 +598,10 @@ export default function StudentApp() {
   };
 
   const screens: Record<Screen, () => React.ReactNode> = {
-    home: () => (
+    home: () =>
+      !account.isMember ? (
+        screens.profile()
+      ) : (
       <>
         <header className="home-header">
           <div>
@@ -624,7 +635,7 @@ export default function StudentApp() {
                 <Icon name="shield" size={19} />
               </span>
               <div>
-                <strong>Campus support is available</strong>
+                <strong>Support is available</strong>
                 <p>Day or night, you can reach someone.</p>
               </div>
             </section>
@@ -665,13 +676,13 @@ export default function StudentApp() {
                   <small>
                     {walk
                       ? walk.status === "help"
-                        ? "Campus security have been alerted"
+                        ? "The safety team has been alerted"
                         : walkLeft > 0
                           ? `${walkLeft} min left · tap to check in`
                           : "Overdue · tap to check in"
                       : wt.current
                         ? `With ${partnerOf(wt.current, me).name} · ${wt.current.status}`
-                        : "Find a verified student going your way"}
+                        : "Find a verified individual going your way."}
                   </small>
                 </span>
                 <Icon name="chevron" size={24} />
@@ -680,10 +691,10 @@ export default function StudentApp() {
               <section className="quick-section">
                 <h2>Quick support</h2>
                 <div className="quick-grid">
-                  {CAMPUS_SECURITY_HREF ? (
-                    <a href={CAMPUS_SECURITY_HREF} aria-label="Call campus security">
+                  {SAFETY_TEAM_HREF ? (
+                    <a href={SAFETY_TEAM_HREF} aria-label="Call the safety team">
                       <Icon name="phone" />
-                      <span>Campus security</span>
+                      <span>Safety team</span>
                     </a>
                   ) : (
                     <button onClick={() => go("nearbyEmergency")}>
@@ -701,13 +712,13 @@ export default function StudentApp() {
           </div>
         </main>
       </>
-    ),
+      ),
 
     incident: () =>
       !account.isMember ? (
         <Page
           title="Log in to report"
-          subtitle="You need a Ripple account to send a report. It keeps reports genuine, and campus security still won't see your name if you send anonymously."
+          subtitle="You need a Ripple account to send a report. It keeps reports genuine, and the safety team still won't see your name if you send anonymously."
           onBack={back}
         >
           <a className="danger-first" href="tel:999">
@@ -799,7 +810,7 @@ export default function StudentApp() {
                     ? area
                       ? `Near ${area}`
                       : "Your current location"
-                    : "Queensgate campus"}
+                    : "Default area"}
               </strong>
               <small>{loc.error && !manualPin ? loc.error : "Approximate location"}</small>
             </span>
@@ -863,7 +874,7 @@ export default function StudentApp() {
           <p className="eyebrow teal">Report sent</p>
           <h1>Thank you for telling us</h1>
           <p>
-            Campus security received your {lastReport?.is_anonymous ? "anonymous " : ""}report at{" "}
+            The safety team received your {lastReport?.is_anonymous ? "anonymous " : ""}report at{" "}
             {lastReport ? clock(lastReport.created_at) : "just now"}. You did the right thing.
           </p>
         </div>
@@ -871,7 +882,7 @@ export default function StudentApp() {
           <h2>What happens next</h2>
           <div className="step">
             <span>1</span>
-            <p>Campus security can see your report on their live map now.</p>
+            <p>The safety team can see your report on their live map now.</p>
           </div>
           <div className="step">
             <span>2</span>
@@ -897,13 +908,13 @@ export default function StudentApp() {
             Counselling and wellbeing <Icon name="chevron" size={19} />
           </button>
           <button onClick={() => go("supportServices")}>
-            Student support service <Icon name="chevron" size={19} />
+            Support services <Icon name="chevron" size={19} />
           </button>
         </section>
         <button className="formal-button" onClick={() => go("formal")}>
           <span>
-            <strong>{formalSent ? "Formal report requested" : "Make a formal report"}</strong>
-            <small>{formalSent ? "See your reference number" : "Share your details with the university"}</small>
+            <strong>{formalSent ? "Formal report submitted" : "Make a formal report"}</strong>
+            <small>{formalSent ? "See your reference number" : "Share your details so someone can follow up"}</small>
           </span>
           <Icon name="chevron" />
         </button>
@@ -915,62 +926,44 @@ export default function StudentApp() {
 
     formal: () =>
       formalSent && lastReport ? (
-        <Page title="Formal report requested" onBack={back}>
-          <div className="formal-illustration">
-            <Icon name="check" size={42} />
-          </div>
+        <main className="formal-submitted">
+          <span className="formal-submitted-tick">
+            <Icon name="check" size={39} />
+          </span>
+          <p className="eyebrow teal">Report received</p>
+          <h1>Formal report submitted</h1>
+          <p>Thank you for speaking up. Your formal report has been submitted and someone will contact you shortly.</p>
           <section className="next-card">
             <h2>Your reference</h2>
             <p className="ref-code">{reportRef(lastReport.id)}</p>
-            <p className="ref-help">
-              A trained member of the campus safety team will contact you {formalSent}. Quote this reference if you
-              call or visit them.
-            </p>
+            <p className="ref-help">Quote this if you call or visit the safety team.</p>
           </section>
-          <div className="info-strip">
-            <Icon name="lock" size={19} />
-            <p>You can bring a support person to any conversation. Nothing else happens without your say-so.</p>
-          </div>
           <button className="primary teal" onClick={goHome}>
-            Done
+            Back to Home
           </button>
-        </Page>
+        </main>
       ) : (
-        <Page
-          title="Formal report"
-          subtitle="A formal report shares your contact details with the university so they can follow up."
-          onBack={back}
-        >
-          <section className="next-card">
-            <h2>Before you continue</h2>
-            <div className="step">
-              <span>1</span>
-              <p>You’ll be asked for contact details and a fuller account.</p>
-            </div>
-            <div className="step">
-              <span>2</span>
-              <p>A trained staff member will contact you to discuss options.</p>
-            </div>
-            <div className="step">
-              <span>3</span>
-              <p>You can bring a support person to any conversation.</p>
-            </div>
-          </section>
+        <Page title="Formal report" subtitle="Tell us what happened. Only the safety team will see these details." onBack={back}>
           {lastReport ? (
             <FormalForm
-              defaultName={account.profile?.full_name ?? ""}
-              defaultContact={account.profile?.contact_number ?? account.user?.email ?? ""}
+              defaults={{
+                full_name: account.profile?.full_name ?? "",
+                age: account.profile?.age?.toString() ?? "",
+                address: account.profile?.address ?? "",
+                contact: account.profile?.contact_number ?? "",
+                place: placeName(lastReport) ?? "",
+                date: lastReport.created_at.slice(0, 10),
+              }}
               onSubmit={async (f) => {
                 const { error } = await supabase.from("formal_requests").insert({ report_id: lastReport.id, ...f });
                 if (error) return "That didn't go through. Check your connection and try again.";
-                setFormalSent(f.preferred_contact === "email" ? "by email" : f.preferred_contact === "phone" ? "by phone" : "soon");
+                setFormalSent("sent");
                 setLastReport({ ...lastReport, wants_formal_report: true });
                 return null;
               }}
-              onCancel={back}
             />
           ) : (
-            <p className="privacy-empty">Send a report first, then you can ask for a formal report.</p>
+            <p className="privacy-empty">Send a report first, then you can make a formal report.</p>
           )}
         </Page>
       ),
@@ -1047,7 +1040,7 @@ export default function StudentApp() {
     ),
 
     walkIntro: () => (
-      <Page title="Walk together" subtitle="Meet a verified student heading in the same direction." onBack={back}>
+      <Page title="Walk together" subtitle="Meet a verified individual heading in the same direction." onBack={back}>
         <div className="walk-intro-art">
           <span>
             <Icon name="walk" size={48} />
@@ -1063,7 +1056,7 @@ export default function StudentApp() {
               <Icon name="shield" />
             </span>
             <p>
-              <strong>Verified students only</strong>Only students with a confirmed university email can use this.
+              <strong>Verified users only</strong>Only people with a confirmed Ripple account can use this.
             </p>
           </div>
           <div>
@@ -1091,7 +1084,7 @@ export default function StudentApp() {
               <p className="eyebrow teal">Account needed</p>
               <h3>Log in to walk together</h3>
             </div>
-            <p>Sign up with your university email so other students know you&apos;re verified.</p>
+            <p>Create a free account and confirm your email so others know you&apos;re verified.</p>
             <button className="primary coral" onClick={() => go("signupType")}>
               Sign up
             </button>
@@ -1103,11 +1096,11 @@ export default function StudentApp() {
           <div className="opt-card gate-card">
             <div>
               <p className="eyebrow teal">Not verified yet</p>
-              <h3>Verified students only</h3>
+              <h3>Confirm your email first</h3>
             </div>
             <p>
-              Walk together needs a student account with a confirmed university email (ending .ac.uk). Check
-              you&apos;ve marked yourself as a student in your details.
+              Walk together is for verified users. Confirm your email with the code we sent when you signed up, then
+              come back here.
             </p>
             <button className="secondary" onClick={() => go("editProfile")}>
               Edit your details
@@ -1128,7 +1121,10 @@ export default function StudentApp() {
                   onClick={() => setVisibility(o.value)}
                 >
                   <span className="radio-dot" />
-                  {o.label}
+                  <span className="visibility-option-copy">
+                    <strong>{o.label}</strong>
+                    {o.hint && <small>{o.hint}</small>}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1139,7 +1135,7 @@ export default function StudentApp() {
                 <small>You can turn this off at any time.</small>
               </span>
             </label>
-            <BottomAction label="See students nearby" disabled={!account.profile?.walk_visible} onClick={() => go("walkNearby")} />
+            <BottomAction label="See individuals nearby" disabled={!account.profile?.walk_visible} onClick={() => go("walkNearby")} />
           </>
         )}
 
@@ -1158,7 +1154,7 @@ export default function StudentApp() {
           </button>
           <button className="sheet-option" disabled={walkBusy} onClick={soloWalk}>
             <Icon name="shield" />
-            <span>Let campus security follow my walk</span>
+            <span>Let the safety team follow my walk</span>
             <Icon name="chevron" />
           </button>
           <button className="text-link-button" onClick={() => setSheet("destination")}>
@@ -1176,16 +1172,16 @@ export default function StudentApp() {
 
     walkNearby: () =>
       !account.verified ? (
-        <Page title="Students nearby" onBack={back}>
-          <p className="privacy-empty">Walk together is for verified students.</p>
+        <Page title="Individuals nearby" onBack={back}>
+          <p className="privacy-empty">Walk together is for verified users.</p>
           <button className="primary teal" onClick={() => goTo("walkIntro")}>
             Find out more
           </button>
         </Page>
       ) : (
         <Page
-          title="Students nearby"
-          subtitle="Verified students heading out now. No exact locations are shared."
+          title="Individuals nearby"
+          subtitle="Verified individuals heading out now. No exact locations are shared."
           onBack={back}
           action={
             <button className="icon-button" onClick={() => go("privacySafety")} aria-label="Open privacy and safety settings">
@@ -1213,7 +1209,7 @@ export default function StudentApp() {
               <h3>
                 {r.from_name} wants to walk to {r.destination}
               </h3>
-              <p>{r.minutes_away ? `About ${r.minutes_away} min away · ` : ""}Verified student</p>
+              <p>{r.minutes_away ? `About ${r.minutes_away} min away · ` : ""}Verified user</p>
               <div>
                 <button
                   className="secondary small"
@@ -1248,7 +1244,7 @@ export default function StudentApp() {
 
           {wt.nearby === null ? (
             <div className="nearby-loading">
-              <Spinner label="Looking for students heading your way…" />
+              <Spinner label="Looking for people heading your way…" />
             </div>
           ) : wt.nearby.length === 0 ? (
             <div className="nearby-empty">
@@ -1258,7 +1254,7 @@ export default function StudentApp() {
               <h2>No one&apos;s heading your way right now</h2>
               <p>
                 {visible
-                  ? "You're visible, so others can find you. You can also share your plans or reach campus support."
+                  ? "You're visible, so others can find you. You can also share your plans or reach support."
                   : "Turn on visibility so others can find you, or share your plans instead."}
               </p>
               <button
@@ -1271,22 +1267,22 @@ export default function StudentApp() {
                 <Icon name="message" size={19} />
                 Share my route with a friend
               </button>
-              {CAMPUS_SECURITY_HREF ? (
-                <a className="secondary empty-call" href={CAMPUS_SECURITY_HREF}>
+              {SAFETY_TEAM_HREF ? (
+                <a className="secondary empty-call" href={SAFETY_TEAM_HREF}>
                   <Icon name="phone" size={19} />
-                  Call campus security
+                  Call the safety team
                 </a>
               ) : (
                 <button className="secondary empty-call" onClick={soloWalk}>
                   <Icon name="shield" size={19} />
-                  Let campus security follow my walk
+                  Let the safety team follow my walk
                 </button>
               )}
               <button
                 className="text-button"
                 onClick={() => {
                   refreshNearby(destination.name, destination.minutes, visible);
-                  say("Checking for students nearby…");
+                  say("Checking for people nearby…");
                 }}
               >
                 Check again
@@ -1305,7 +1301,7 @@ export default function StudentApp() {
                     <div className="walker-info">
                       <h3>
                         {b.first_name}{" "}
-                        <span title="Verified student" aria-label="Verified student">
+                        <span title="Verified user" aria-label="Verified user">
                           <Icon name="shield" size={16} />
                         </span>
                       </h3>
@@ -1354,7 +1350,7 @@ export default function StudentApp() {
           <Page title="Walk together" onBack={back}>
             <p className="privacy-empty">You don&apos;t have a walk request right now.</p>
             <button className="primary teal" onClick={() => goTo("walkNearby")}>
-              See students nearby
+              See individuals nearby
             </button>
           </Page>
         );
@@ -1370,7 +1366,7 @@ export default function StudentApp() {
             <div className="waiting-block">
               <Avatar initials={initials} color={color} large />
               <span className="verified-badge">
-                <Icon name="shield" size={15} /> Verified student
+                <Icon name="shield" size={15} /> Verified user
               </span>
               <h1>Waiting for {partner.name}</h1>
               <p>They can accept or decline. Your exact location is still private.</p>
@@ -1535,7 +1531,7 @@ export default function StudentApp() {
               goTo("walkNearby");
             }}
           >
-            See students nearby
+            See individuals nearby
           </button>
         </Page>
       );
@@ -1583,12 +1579,12 @@ export default function StudentApp() {
             ) : (
               <>Your walk took {arrival?.minutes} min.</>
             )}{" "}
-            Campus security can see you&apos;ve checked in.
+            The safety team can see you&apos;ve checked in.
           </p>
         </div>
         <section className="walk-feedback">
           <h2>How did the walk feel?</h2>
-          <p>Optional · This helps campus security improve walking routes.</p>
+          <p>Optional · This helps the safety team improve walking routes.</p>
           <div>
             {(["good", "not_good"] as const).map((v) => (
               <button
@@ -1665,7 +1661,7 @@ export default function StudentApp() {
           <Icon name="location" size={19} />
           <p>
             Based on your location: <strong>{placeName(loc.position) ?? "your current area"}</strong>
-            <small>{loc.source === "device" ? "Using your device location" : "Location is off · showing Queensgate campus"}</small>
+            <small>{loc.source === "device" ? "Using your device location" : "Location is off · showing a default area"}</small>
           </p>
         </div>
         <div className="call-card-list">
@@ -1739,7 +1735,7 @@ export default function StudentApp() {
                     <Avatar initials={initialsOf(b.blocked_name)} color={colorFor(b.blocked_id)} />
                     <p>
                       <strong>{b.blocked_name}</strong>
-                      <small>Blocked student</small>
+                      <small>Blocked user</small>
                     </p>
                     <button onClick={() => setUnblock({ id: b.blocked_id, name: b.blocked_name })}>Unblock</button>
                   </div>
@@ -1807,6 +1803,7 @@ export default function StudentApp() {
         }}
         onEdit={() => go("editProfile")}
         onPrivacy={() => go("privacySafety")}
+        onGetHelp={() => go("supportServices")}
         onLogout={async () => {
           await account.logOut();
           setWalk(null);
@@ -1817,7 +1814,7 @@ export default function StudentApp() {
     ),
 
     login: () => (
-      <Page title="Welcome back" subtitle="Log in to your Ripple account." onBack={back}>
+      <Page title="Welcome back" subtitle="Log in to your Ripple account." onBack={back} top={<AuthLogo />}>
         <LoginForm
           onLogin={async (email, password) => {
             const err = await account.logIn(email, password);
@@ -1834,25 +1831,25 @@ export default function StudentApp() {
     ),
 
     forgot: () => (
-      <Page title="Reset your password" subtitle="We'll email you a link to choose a new one." onBack={back}>
-        <ForgotPassword onSend={account.sendReset} />
+      <Page title="Reset your password" subtitle="We'll email you a 6-digit code to choose a new one." onBack={back} top={<AuthLogo />}>
+        <ForgotPassword onSend={account.sendReset} onVerify={account.verifyRecovery} />
       </Page>
     ),
 
     signupType: () => (
-      <Page title="Create your account" subtitle="Choose the account type that fits you." onBack={back}>
+      <Page title="Create your account" subtitle="Choose the account type that fits you." onBack={back} top={<AuthLogo />}>
         <SignupType onIndividual={() => go("individualSignup")} onOrganisation={() => go("organisationSignup")} />
       </Page>
     ),
 
     individualSignup: () => (
-      <Page title="Individual account" subtitle="Create your personal Ripple account." onBack={back}>
+      <Page title="Individual account" subtitle="Create your personal Ripple account." onBack={back} top={<AuthLogo />}>
         <IndividualSignup onSubmit={signUp} />
       </Page>
     ),
 
     organisationSignup: () => (
-      <Page title="Organisation account" subtitle="Create a Ripple account for your organisation." onBack={back}>
+      <Page title="Group account" subtitle="Create a Ripple account for your group." onBack={back} top={<AuthLogo />}>
         <OrganisationSignup onSubmit={signUp} />
       </Page>
     ),
@@ -1881,7 +1878,7 @@ export default function StudentApp() {
 
     editProfile: () =>
       account.profile ? (
-        <Page title="Your details" subtitle="Only you can see these. Other students only see your first name." onBack={back}>
+        <Page title="Your details" subtitle="Only you can see these. Other people only see your first name." onBack={back}>
           <EditProfile
             profile={account.profile}
             onSave={async (patch) => {
@@ -1901,7 +1898,31 @@ export default function StudentApp() {
       ),
   };
 
-  const content = account.recovering ? (
+  const content = account.linkToken ? (
+    <Page
+      title={account.linkToken.type === "recovery" ? "Reset your password" : "Confirm your email"}
+      subtitle="Tap continue to finish. This keeps your link safe from email scanners."
+      onBack={account.dismissLink}
+      top={<AuthLogo />}
+    >
+      <LinkConfirm
+        onConfirm={async () => {
+          const type = account.linkToken?.type;
+          const err = await account.confirmLink();
+          if (err) return err;
+          if (type !== "recovery") {
+            goHome();
+            say("Email confirmed. Welcome to Ripple");
+          }
+          return null;
+        }}
+      />
+    </Page>
+  ) : account.linkError ? (
+    <Page title="That link didn't work" subtitle="Email links can only be used once. Get a code instead." onBack={account.clearLinkError} top={<AuthLogo />}>
+      <ForgotPassword onSend={account.sendReset} onVerify={account.verifyRecovery} notice={account.linkError} />
+    </Page>
+  ) : account.recovering ? (
     <Page title="Choose a new password" onBack={account.cancelRecovery}>
       <SetNewPassword
         onSave={async (p) => {
@@ -1975,7 +1996,7 @@ export default function StudentApp() {
           <Sheet
             id="contact-picker-title"
             title="Share my route"
-            intro={`Pick someone to text your plan to. Campus security will also follow your walk to ${destination.name} until you check in.`}
+            intro={`Pick someone to text your plan to. The safety team will also follow your walk to ${destination.name} until you check in.`}
             className="contact-picker"
             onClose={() => setSheet(null)}
           >
@@ -2036,7 +2057,10 @@ export default function StudentApp() {
                   }}
                 >
                   <Radio />
-                  <span>{o.label}</span>
+                  <span className="visibility-option-copy">
+                    <strong>{o.label}</strong>
+                    {o.hint && <small>{o.hint}</small>}
+                  </span>
                   {o.value === "hidden" && <Icon name="eye" size={17} />}
                 </button>
               ))}
@@ -2067,7 +2091,7 @@ export default function StudentApp() {
                   <div>
                     <h2 id="student-sheet-title">{studentSheet.person.name}</h2>
                     <p>
-                      <Icon name="shield" size={14} /> Verified student
+                      <Icon name="shield" size={14} /> Verified user
                     </p>
                   </div>
                 </div>
@@ -2094,7 +2118,7 @@ export default function StudentApp() {
                   <Icon name="help" />
                   <span>
                     <strong>Report</strong>
-                    <small>Tell campus security about a concern</small>
+                    <small>Tell the safety team about a concern</small>
                   </span>
                 </button>
                 <button className="sheet-cancel" onClick={() => setStudentSheet(null)}>
@@ -2108,7 +2132,7 @@ export default function StudentApp() {
                 </span>
                 <p className="eyebrow teal">Report sent</p>
                 <h2 id="student-sheet-title">Thank you for telling us</h2>
-                <p>Campus security have your report. {studentSheet.person.name} is blocked, so you won&apos;t see each other.</p>
+                <p>The safety team has your report. {studentSheet.person.name} is blocked, so you won&apos;t see each other.</p>
                 <button className="primary teal" onClick={() => setStudentSheet(null)}>
                   Done
                 </button>
@@ -2143,7 +2167,7 @@ export default function StudentApp() {
                     setStudentSheet({ ...studentSheet, mode: "thanks" });
                   }}
                 >
-                  Send to campus security
+                  Send to the safety team
                 </button>
                 <button className="sheet-cancel" onClick={() => setStudentSheet(null)}>
                   Cancel
@@ -2171,14 +2195,14 @@ export default function StudentApp() {
               {walk?.status === "help" && (
                 <p className="help-sent" role="status">
                   <Icon name="check" size={18} />
-                  Campus security have been alerted and can see your last location.
+                  The safety team has been alerted and can see your last location.
                 </p>
               )}
               {walk && walk.status !== "help" && (
                 <button className="sheet-call alert-security" onClick={needHelp}>
                   <Icon name="bell" size={24} />
                   <span>
-                    <strong>Alert campus security</strong>
+                    <strong>Alert the safety team</strong>
                     <small>Flags your walk and shares your location with them</small>
                   </span>
                 </button>
@@ -2190,10 +2214,10 @@ export default function StudentApp() {
                   <small>If you&apos;re in danger right now</small>
                 </span>
               </a>
-              {CAMPUS_SECURITY_HREF && (
-                <a className="sheet-option" href={CAMPUS_SECURITY_HREF}>
+              {SAFETY_TEAM_HREF && (
+                <a className="sheet-option" href={SAFETY_TEAM_HREF}>
                   <Icon name="phone" />
-                  <span>Call campus security</span>
+                  <span>Call the safety team</span>
                   <Icon name="chevron" />
                 </a>
               )}
@@ -2292,7 +2316,7 @@ function LiveWalk({
   // Ask "Everything okay?" once when time runs out, or when the person checks in.
   const checkinOpen = manualCheckin || (overdue && walk.status === "active" && answeredFor !== walk.expected_by);
   const mode = walk.mode ?? "solo";
-  const companion = walk.companion_name ?? (mode === "solo" ? "Campus security" : "Your companion");
+  const companion = walk.companion_name ?? (mode === "solo" ? "Safety team" : "Your companion");
 
   // Share the latest position with security every 20 seconds while walking.
   useEffect(() => {
@@ -2315,8 +2339,8 @@ function LiveWalk({
 
   return (
     <Page
-      title={mode === "together" ? `Walking with ${companion}` : mode === "shared" ? `${companion} is following` : "Campus security is following"}
-      subtitle="Your exact position is only shared with campus security."
+      title={mode === "together" ? `Walking with ${companion}` : mode === "shared" ? `${companion} is following` : "The safety team is following"}
+      subtitle="Your exact position is only shared with the safety team."
       onBack={onBack}
       action={<SecurityButton onClick={onSecurity} />}
     >
@@ -2338,8 +2362,8 @@ function LiveWalk({
           <p>
             <strong>{companion}</strong>
             {mode === "together" ? (
-              <small aria-label="Verified student">
-                <Icon name="shield" size={13} /> Verified student
+              <small aria-label="Verified user">
+                <Icon name="shield" size={13} /> Verified user
               </small>
             ) : (
               <small className="route-follower">
@@ -2366,12 +2390,12 @@ function LiveWalk({
       {walk.status === "help" ? (
         <div className="info-strip walk-alert" role="status">
           <Icon name="bell" size={19} />
-          <p>Campus security have been alerted and can see your last location. If you&apos;re in danger, call 999.</p>
+          <p>The safety team has been alerted and can see your last location. If you&apos;re in danger, call 999.</p>
         </div>
       ) : overdue ? (
         <div className="info-strip walk-warn" role="status">
           <Icon name="clock" size={19} />
-          <p>You&apos;re past your expected time, so campus security can see this walk is overdue. Check in when you&apos;re safe.</p>
+          <p>You&apos;re past your expected time, so the safety team can see this walk is overdue. Check in when you&apos;re safe.</p>
         </div>
       ) : null}
 
@@ -2403,7 +2427,7 @@ function LiveWalk({
           <Icon name="eye" />
           <p>
             <small>{mode === "shared" ? "Route shared with" : "Followed by"}</small>
-            <strong>{mode === "shared" ? `${companion} · Trusted contact` : "Campus security"}</strong>
+            <strong>{mode === "shared" ? `${companion} · Trusted contact` : "Safety team"}</strong>
           </p>
           {textContact ? (
             <a
@@ -2436,8 +2460,8 @@ function LiveWalk({
       <p className="safety-copy">
         <Icon name="shield" size={16} />{" "}
         {mode === "together"
-          ? "Campus security can see this walk until you arrive. You can block or report this student afterwards."
-          : "Campus security can see this walk until you check in."}
+          ? "The safety team can see this walk until you arrive. You can block or report this person afterwards."
+          : "The safety team can see this walk until you check in."}
       </p>
 
       {checkinOpen && (
@@ -2483,96 +2507,150 @@ function LiveWalk({
 
 type FormalDetails = {
   full_name: string;
+  age: number;
+  gender: "Female" | "Male" | "Prefer not to say";
+  address: string;
   contact: string;
-  preferred_contact: "phone" | "email" | "either";
-  statement: string | null;
-  support_person: boolean;
+  statement: string;
+  incident_date: string;
+  incident_place: string;
 };
 
+type FormalField = "full_name" | "age" | "gender" | "address" | "contact" | "description" | "date" | "place";
+
 function FormalForm({
-  defaultName,
-  defaultContact,
+  defaults,
   onSubmit,
-  onCancel,
 }: {
-  defaultName: string;
-  defaultContact: string;
+  defaults: { full_name: string; age: string; address: string; contact: string; place: string; date: string };
   onSubmit: (f: FormalDetails) => Promise<string | null>;
-  onCancel: () => void;
 }) {
-  const [name, setName] = useState(defaultName);
-  const [contact, setContact] = useState(defaultContact);
-  const [preferred, setPreferred] = useState<FormalDetails["preferred_contact"]>("either");
-  const [statement, setStatement] = useState("");
-  const [support, setSupport] = useState(false);
+  const [f, setF] = useState({ ...defaults, gender: "", description: "" });
+  const [errors, setErrors] = useState<Partial<Record<FormalField, string>>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const set = (k: FormalField, v: string) => {
+    setF((s) => ({ ...s, [k]: v }));
+    setErrors((e) => ({ ...e, [k]: "" }));
+  };
+  const today = new Date().toISOString().slice(0, 10);
+
+  const fieldError = (k: FormalField) =>
+    errors[k] ? (
+      <p className="formal-field-error" id={`formal-${k}-error`}>
+        <Icon name="help" size={15} />
+        {errors[k]}
+      </p>
+    ) : null;
+  const aria = (k: FormalField) => ({
+    "aria-invalid": !!errors[k],
+    "aria-describedby": errors[k] ? `formal-${k}-error` : undefined,
+  });
 
   return (
     <form
-      className="account-form formal-form"
+      className="formal-report-form"
       noValidate
       onSubmit={async (e) => {
         e.preventDefault();
-        if (!name.trim()) return setError("Add your name.");
-        if (contact.trim().length < 3) return setError("Add a phone number or email so the team can reach you.");
+        const next: Partial<Record<FormalField, string>> = {};
+        const age = Number(f.age);
+        if (!f.full_name.trim()) next.full_name = "Please enter the full name.";
+        if (!Number.isInteger(age) || age < 1 || age > 120) next.age = "Please enter an age.";
+        if (!f.gender) next.gender = "Please choose an option.";
+        if (!f.address.trim()) next.address = "Please enter an address.";
+        if (f.contact.replace(/\D/g, "").length < 6) next.contact = "Please enter a contact number.";
+        if (!f.description.trim()) next.description = "Please describe what happened.";
+        if (!f.date) next.date = "Please enter the date.";
+        else if (f.date > today) next.date = "The date can't be in the future.";
+        if (!f.place.trim()) next.place = "Please enter where it happened.";
+        setErrors(next);
+        if (Object.values(next).some(Boolean)) {
+          setError("Check the highlighted fields.");
+          return;
+        }
         setBusy(true);
         const err = await onSubmit({
-          full_name: name.trim().slice(0, 100),
-          contact: contact.trim().slice(0, 120),
-          preferred_contact: preferred,
-          statement: statement.trim() || null,
-          support_person: support,
+          full_name: f.full_name.trim().slice(0, 100),
+          age,
+          gender: f.gender as FormalDetails["gender"],
+          address: f.address.trim().slice(0, 300),
+          contact: f.contact.trim().slice(0, 120),
+          statement: f.description.trim().slice(0, 4000),
+          incident_date: f.date,
+          incident_place: f.place.trim().slice(0, 200),
         });
         setBusy(false);
         setError(err ?? "");
       }}
     >
-      <div className="form-field">
-        <label htmlFor="formal-name">Your name</label>
-        <input id="formal-name" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
-      </div>
-      <div className="form-field">
-        <label htmlFor="formal-contact">Phone number or email</label>
-        <input id="formal-contact" autoComplete="tel" value={contact} onChange={(e) => setContact(e.target.value)} />
-      </div>
-      <fieldset className="form-section">
-        <legend>How should we contact you?</legend>
-        <div className="segmented-choice three">
-          {(
-            [
-              ["phone", "Phone"],
-              ["email", "Email"],
-              ["either", "Either"],
-            ] as const
-          ).map(([v, label]) => (
-            <label key={v} className={preferred === v ? "selected" : ""}>
-              <input type="radio" name="formal-preferred" checked={preferred === v} onChange={() => setPreferred(v)} />
-              {label}
-            </label>
-          ))}
+      <fieldset className="formal-form-section">
+        <legend>About the person affected</legend>
+        <div className="form-field">
+          <label htmlFor="formal-full_name">Full name</label>
+          <input id="formal-full_name" autoComplete="name" value={f.full_name} onChange={(e) => set("full_name", e.target.value)} {...aria("full_name")} />
+          {fieldError("full_name")}
+        </div>
+        <div className="form-field">
+          <label htmlFor="formal-age">Age</label>
+          <input id="formal-age" type="number" inputMode="numeric" min="1" value={f.age} onChange={(e) => set("age", e.target.value)} {...aria("age")} />
+          {fieldError("age")}
+        </div>
+        <fieldset className="form-section formal-gender">
+          <legend>Gender</legend>
+          <div className="segmented-choice three">
+            {(["Female", "Male", "Prefer not to say"] as const).map((g) => (
+              <label key={g} className={f.gender === g ? "selected" : ""}>
+                <input type="radio" name="formal-gender" value={g} checked={f.gender === g} onChange={() => set("gender", g)} />
+                {g}
+              </label>
+            ))}
+          </div>
+          {fieldError("gender")}
+        </fieldset>
+        <div className="form-field">
+          <label htmlFor="formal-address">Address</label>
+          <textarea id="formal-address" autoComplete="street-address" value={f.address} onChange={(e) => set("address", e.target.value)} {...aria("address")} />
+          {fieldError("address")}
+        </div>
+        <div className="form-field">
+          <label htmlFor="formal-contact">Contact number</label>
+          <input id="formal-contact" type="tel" autoComplete="tel" value={f.contact} onChange={(e) => set("contact", e.target.value)} {...aria("contact")} />
+          {fieldError("contact")}
         </div>
       </fieldset>
-      <div className="form-field">
-        <label htmlFor="formal-statement">What happened, in your own words (optional)</label>
-        <textarea
-          id="formal-statement"
-          value={statement}
-          maxLength={4000}
-          onChange={(e) => setStatement(e.target.value)}
-          placeholder="You can also tell the team when they contact you."
-        />
-      </div>
-      <label className="consent-row">
-        <input type="checkbox" checked={support} onChange={(e) => setSupport(e.target.checked)} />
-        <span>
-          <strong>I&apos;d like to bring a support person</strong>
-          <small>A friend, family member or advisor.</small>
-        </span>
-      </label>
+
+      <fieldset className="formal-form-section">
+        <legend>About the incident</legend>
+        <div className="form-field">
+          <label htmlFor="formal-description">Describe the incident</label>
+          <p className="formal-helper">Share as much as you feel comfortable with.</p>
+          <textarea
+            id="formal-description"
+            className="incident-description"
+            value={f.description}
+            maxLength={4000}
+            onChange={(e) => set("description", e.target.value)}
+            placeholder="Describe what happened in your own words…"
+            {...aria("description")}
+          />
+          {fieldError("description")}
+        </div>
+        <div className="form-field">
+          <label htmlFor="formal-date">Date of incident</label>
+          <input id="formal-date" type="date" max={today} value={f.date} onChange={(e) => set("date", e.target.value)} {...aria("date")} />
+          {fieldError("date")}
+        </div>
+        <div className="form-field">
+          <label htmlFor="formal-place">Place of incident</label>
+          <input id="formal-place" value={f.place} onChange={(e) => set("place", e.target.value)} placeholder="Street, venue or area" {...aria("place")} />
+          {fieldError("place")}
+        </div>
+      </fieldset>
+
       <div className="info-strip">
         <Icon name="lock" size={19} />
-        <p>Only campus security can see these details. Your original report stays anonymous to everyone else.</p>
+        <p>Only the safety team can see these details. Your original report stays anonymous to everyone else.</p>
       </div>
       {error && (
         <p className="form-error" role="alert">
@@ -2580,11 +2658,8 @@ function FormalForm({
           {error}
         </p>
       )}
-      <button className="primary coral account-submit" type="submit" disabled={busy}>
-        {busy ? "Sending…" : "Send formal report request"}
-      </button>
-      <button className="secondary" type="button" onClick={onCancel}>
-        Not now
+      <button className="primary coral formal-submit" type="submit" disabled={busy}>
+        {busy ? "Submitting…" : "Submit report"}
       </button>
     </form>
   );
@@ -2608,7 +2683,7 @@ function DestinationSheet({
   const name = choice === "other" ? other.trim() : choice;
 
   return (
-    <Sheet id="destination-title" title="Where are you heading?" intro="Pick an area. Other students only see the area, never an address." onClose={onClose}>
+    <Sheet id="destination-title" title="Where are you heading?" intro="Pick an area. Other people only see the area, never an address." onClose={onClose}>
       <div className="sheet-choice-list">
         {[...DESTINATIONS, "other"].map((d) => (
           <button key={d} className={choice === d ? "selected" : ""} onClick={() => setChoice(d)}>

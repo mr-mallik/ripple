@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-// University of Huddersfield, Queensgate campus: the fallback when the
+// Huddersfield town centre area: the fallback when the
 // device location isn't available or is refused.
 export const QUEENSGATE = { lat: 53.6433, lng: -1.7781 };
 
@@ -28,19 +28,19 @@ export function offset(p: LatLng, northM: number, eastM: number): LatLng {
 
 export type DeviceLocation = {
   position: LatLng;
-  /** "device" once the browser has given a fix, "fallback" while on Queensgate. */
+  /** "device" once the browser has given a fix, "fallback" while on the fallback area. */
   source: "device" | "fallback";
   error: string | null;
 };
 
-/** Follows the device location, starting from Queensgate until a fix arrives. */
+/** Follows the device location, starting from the fallback area until a fix arrives. */
 export function useDeviceLocation(): DeviceLocation {
   const [state, setState] = useState<DeviceLocation>(() => ({
     position: QUEENSGATE,
     source: "fallback",
     error:
       typeof navigator !== "undefined" && !("geolocation" in navigator)
-        ? "This device can't share its location, so the map is showing Queensgate campus."
+        ? "This device can't share its location, so the map is showing a default area."
         : null,
   }));
 
@@ -58,7 +58,7 @@ export function useDeviceLocation(): DeviceLocation {
           ...s,
           error:
             err.code === err.PERMISSION_DENIED
-              ? "Location is off, so the map is showing Queensgate campus."
+              ? "Location is off, so the map is showing a default area."
               : "Couldn't get your location yet.",
         })),
       { enableHighAccuracy: true, maximumAge: 15000, timeout: 20000 },

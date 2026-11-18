@@ -4510,3 +4510,226 @@
   font-weight: 800;
   text-decoration: underline;
 }
+
+/* ------------------------------------------------------------------ */
+/* Refreshed design: entry screen, signed-in card, formal report form, */
+/* visibility descriptions and larger body text for readability.       */
+/* ------------------------------------------------------------------ */
+
+.ripple-student .page-title > p,
+.ripple-student .profile-heading > p:last-child,
+.ripple-student .notice-card > p,
+.ripple-student .success-block > p:last-child,
+.ripple-student .waiting-block > p,
+.ripple-student .kind-intro,
+.ripple-student .otp-copy,
+.ripple-student .form-field > label,
+.ripple-student .form-section > legend,
+.ripple-student .form-field > input,
+.ripple-student .form-field > select,
+.ripple-student .form-field > textarea,
+.ripple-student .password-input input,
+.ripple-student .primary,
+.ripple-student .secondary,
+.ripple-student .arrived-button,
+.ripple-student .logout-button,
+.ripple-student .account-link {
+  font-size: 16px;
+}
+
+.ripple-student .auth-logo {
+  width: min(60vw, 240px);
+  margin: 4px auto 6px;
+}
+.ripple-student .auth-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.ripple-student .entry-landing {
+  padding-top: 42px;
+}
+.ripple-student .entry-landing .profile-heading {
+  text-align: center;
+}
+.ripple-student .entry-landing .profile-heading h1 {
+  margin-top: 8px;
+  font-size: 31px;
+}
+.ripple-student .entry-landing .profile-heading > p:last-child {
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.ripple-student .entry-help {
+  margin-top: 22px;
+}
+.ripple-student .entry-help .danger-first {
+  justify-content: center;
+}
+
+.ripple-student .signed-in-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  margin-top: 24px;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #dce3df;
+  border-radius: 16px;
+}
+.ripple-student .signed-in-card > div {
+  flex: 1;
+  min-width: 0;
+}
+.ripple-student .signed-in-card strong,
+.ripple-student .signed-in-card small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.ripple-student .signed-in-card strong {
+  font-size: 15px;
+}
+.ripple-student .signed-in-card small {
+  color: #66747b;
+  margin-top: 2px;
+  font-size: 13px;
+}
+.ripple-student .signed-in-card .verified-badge {
+  margin: 0;
+  flex: none;
+  font-size: 12px;
+}
+.ripple-student .logout-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 52px;
+  margin-top: 14px;
+  color: #a63a37;
+  background: #fff5f2;
+  border: 1px solid #e7bcb6;
+  border-radius: 13px;
+  font-weight: 800;
+}
+
+.ripple-student .visibility-option-copy {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.ripple-student .visibility-option-copy strong,
+.ripple-student .visibility-option-copy small {
+  display: block;
+}
+.ripple-student .visibility-option-copy strong {
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.ripple-student .visibility-option-copy small {
+  color: #68777d;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.ripple-student .formal-report-form {
+  padding-bottom: 12px;
+}
+.ripple-student .formal-form-section {
+  margin-bottom: 17px;
+  padding: 17px 15px 3px;
+  background: #fff;
+  border: 1px solid #dce3df;
+  border-radius: 17px;
+}
+.ripple-student .formal-form-section > legend {
+  float: left;
+  width: calc(100% + 30px);
+  margin: 0 -15px 16px;
+  padding: 0 15px 13px;
+  color: #2e1a45;
+  border-bottom: 1px solid #e2e6e3;
+  font-size: 18px;
+  font-weight: 600;
+}
+.ripple-student .formal-form-section > legend + * {
+  clear: both;
+}
+.ripple-student .formal-helper {
+  color: #68787d;
+  margin: -2px 2px 8px;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.ripple-student .formal-report-form .incident-description {
+  min-height: 150px;
+}
+.ripple-student .formal-field-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 37px;
+  margin-top: 7px;
+  padding: 7px 9px;
+  color: #9d302f;
+  background: #fbe8e5;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.ripple-student .formal-field-error svg {
+  flex: none;
+}
+.ripple-student .formal-report-form [aria-invalid="true"] {
+  border-color: #b83e3b;
+  box-shadow: 0 0 0 1px #b83e3b;
+}
+.ripple-student .formal-gender {
+  margin-bottom: 15px;
+}
+.ripple-student .formal-submit {
+  min-height: 58px;
+  margin-top: 16px;
+}
+.ripple-student .formal-submitted {
+  text-align: center;
+  padding: 76px 24px 38px;
+}
+.ripple-student .formal-submitted-tick {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 18px;
+  color: #fff;
+  background: #6b3f94;
+  border-radius: 50%;
+  box-shadow: 0 11px 25px #6b3f9438;
+}
+.ripple-student .formal-submitted h1 {
+  max-width: 340px;
+  margin: 7px auto 0;
+  font-family: Georgia, serif;
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.ripple-student .formal-submitted > p:not(.eyebrow) {
+  max-width: 340px;
+  margin: 14px auto 24px;
+  color: #566971;
+  font-size: 16px;
+  line-height: 1.6;
+}
+.ripple-student .formal-submitted .next-card {
+  text-align: left;
+  margin-bottom: 20px;
+}

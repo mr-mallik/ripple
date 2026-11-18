@@ -41,6 +41,14 @@ function Submit({ busy, label, busyLabel }: { busy: boolean; label: string; busy
 
 /* ----------------------------------------------------------------- profile */
 
+export function AuthLogo() {
+  return (
+    <div className="auth-logo">
+      <Image src="/brand/ripple-logo.png" alt="Ripple: women's safety matters" width={940} height={478} priority />
+    </div>
+  );
+}
+
 export function ProfileView({
   email,
   profile,
@@ -51,6 +59,7 @@ export function ProfileView({
   onEdit,
   onPrivacy,
   onLogout,
+  onGetHelp,
 }: {
   email: string | null;
   profile: Profile | null;
@@ -61,72 +70,117 @@ export function ProfileView({
   onEdit: () => void;
   onPrivacy: () => void;
   onLogout: () => void;
+  onGetHelp: () => void;
 }) {
-  const status = !profile
-    ? null
-    : profile.account_type === "organisation"
-      ? profile.approved
-        ? { tone: "ok", text: "Approved organisation" }
-        : { tone: "wait", text: "Organisation · waiting for approval by the Ripple team" }
-      : verified
-        ? { tone: "ok", text: "Verified student" }
-        : profile.is_student
-          ? { tone: "wait", text: "Not verified yet · use your university email (.ac.uk) to join Walk together" }
-          : { tone: "plain", text: "Personal account" };
+  if (!isMember) {
+    return (
+      <main className="profile-landing entry-landing">
+        <AuthLogo />
+        <div className="profile-heading">
+          <h1>Stay safe, together</h1>
+          <p>Report concerns, find support, and walk with verified people near you.</p>
+        </div>
+        <div className="profile-actions">
+          <button className="primary coral" onClick={onLogin}>
+            Log in
+          </button>
+          <button className="secondary profile-signup" onClick={onSignup}>
+            Sign up
+          </button>
+        </div>
+        <div className="entry-help">
+          <a className="danger-first" href="tel:999">
+            <Icon name="phone" size={17} />
+            In danger right now? Call 999
+          </a>
+          <button className="text-button" onClick={onGetHelp}>
+            Find support without an account
+          </button>
+        </div>
+        <div className="profile-demo-note">
+          <Icon name="lock" size={18} />
+          <p>
+            <strong>Your privacy comes first</strong>
+            Choose &ldquo;Send anonymously&rdquo; and the safety team won&apos;t see who sent a report.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  const org = profile?.account_type === "organisation";
+  const name = profile?.full_name ?? "Your account";
+  const initials = name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+  const badge = org ? (profile?.approved ? "Approved group" : "Awaiting approval") : verified ? "Verified" : null;
 
   return (
     <main className="profile-landing">
       <div className="profile-heading">
-        <Image src="/brand/ripple-logo.png" alt="Ripple: women's safety matters" width={940} height={478} className="profile-logo" />
-        <span>
-          <Icon name="person" size={31} />
-        </span>
-        <p className="eyebrow teal">Your Ripple account</p>
-        <h1>{isMember ? (profile?.full_name ?? "Your account") : "Profile"}</h1>
-        <p>
-          {isMember
-            ? (email ?? "")
-            : "Log in to report, walk together, and manage your trusted contacts and safety settings."}
-        </p>
-        {status && <p className={`account-status ${status.tone}`}>{status.text}</p>}
+        <p className="eyebrow teal">Signed in</p>
+        <h1>Your profile</h1>
+        <p>Manage your Ripple account and safety preferences.</p>
       </div>
-      <div className="profile-actions">
-        {isMember ? (
-          <>
-            <button className="primary teal" onClick={onPrivacy}>
-              Privacy and safety
-            </button>
-            {profile && (
-              <button className="secondary profile-signup" onClick={onEdit}>
-                Edit your details
-              </button>
-            )}
-            <button className="text-button danger-text" onClick={onLogout}>
-              Log out
-            </button>
-          </>
-        ) : (
-          <>
-            <button className="primary coral" onClick={onLogin}>
-              Log in
-            </button>
-            <button className="secondary profile-signup" onClick={onSignup}>
-              Sign up
-            </button>
-            <button className="text-button" onClick={onPrivacy}>
-              Trusted contacts on this device
-            </button>
-          </>
+      <section className="signed-in-card">
+        <span className="avatar blue">{initials || "ME"}</span>
+        <div>
+          <strong>{name}</strong>
+          <small>{email}</small>
+        </div>
+        {badge && (
+          <span className="verified-badge">
+            <Icon name="shield" size={14} /> {badge}
+          </span>
         )}
-      </div>
-      <div className="profile-demo-note">
-        <Icon name="lock" size={18} />
-        <p>
-          <strong>Your reports stay anonymous</strong>
-          Choose &ldquo;Send anonymously&rdquo; and campus security won&apos;t see who sent a report.
-        </p>
+      </section>
+      {org && !profile?.approved && (
+        <p className="account-status wait">The Ripple team will check your group before it can see any safety data.</p>
+      )}
+      {!org && !verified && profile && (
+        <p className="account-status wait">Confirm your email to use Walk together.</p>
+      )}
+      <div className="profile-actions">
+        <button className="primary teal" onClick={onPrivacy}>
+          Privacy and safety
+        </button>
+        {profile && (
+          <button className="secondary profile-signup" onClick={onEdit}>
+            Edit your details
+          </button>
+        )}
+        <button className="logout-button" onClick={onLogout}>
+          <Icon name="arrow" size={19} />
+          Log out
+        </button>
       </div>
     </main>
+  );
+}
+
+/** A Continue button for email links, so scanners that open links can't use them up. */
+export function LinkConfirm({ onConfirm }: { onConfirm: () => Promise<string | null> }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  return (
+    <div className="account-form">
+      {error && <FormError>{error}</FormError>}
+      <button
+        className="primary coral account-submit"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          const err = await onConfirm();
+          setBusy(false);
+          setError(err ?? "");
+        }}
+      >
+        {busy ? "Checking…" : "Continue"}
+      </button>
+    </div>
   );
 }
 
@@ -170,7 +224,7 @@ export function LoginForm({
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@university.ac.uk"
+          placeholder="you@example.com"
           aria-describedby={error ? "login-error" : undefined}
         />
       </Field>
@@ -204,45 +258,107 @@ export function LoginForm({
   );
 }
 
-export function ForgotPassword({ onSend }: { onSend: (email: string) => Promise<string | null> }) {
+export function ForgotPassword({
+  onSend,
+  onVerify,
+  notice,
+}: {
+  onSend: (email: string) => Promise<string | null>;
+  onVerify: (email: string, code: string) => Promise<string | null>;
+  notice?: string | null;
+}) {
   const [email, setEmail] = useState("");
-  const [state, setState] = useState<"idle" | "busy" | "sent">("idle");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  if (state === "sent") {
+  const [wait, setWait] = useState(0);
+
+  useEffect(() => {
+    if (wait <= 0) return;
+    const id = window.setInterval(() => setWait((w) => Math.max(0, w - 1)), 1000);
+    return () => window.clearInterval(id);
+  }, [wait]);
+
+  const send = async () => {
+    setBusy(true);
+    const err = await onSend(email);
+    setBusy(false);
+    if (err) {
+      setError(/rate|seconds|too many/i.test(err) ? "Too many emails sent. Wait a minute, then try again." : err);
+      return false;
+    }
+    setError("");
+    setWait(60);
+    return true;
+  };
+
+  if (step === "code") {
     return (
-      <div className="otp-success">
-        <span>
-          <Icon name="message" size={34} />
-        </span>
-        <p className="eyebrow teal">Check your email</p>
-        <h2>Reset link sent</h2>
-        <p>If {email.trim()} has a Ripple account, you&apos;ll get a link to choose a new password.</p>
-      </div>
+      <form
+        className="account-form"
+        noValidate
+        onSubmit={async (e) => {
+          e.preventDefault();
+          const clean = code.replace(/\D/g, "");
+          if (clean.length < 6) return setError("Enter the code from the email.");
+          setBusy(true);
+          const err = await onVerify(email, clean);
+          setBusy(false);
+          setError(err ?? "");
+        }}
+      >
+        <p className="otp-copy">
+          If <strong>{email.trim()}</strong> has a Ripple account, we&apos;ve emailed it a code. Enter it below to
+          choose a new password.
+        </p>
+        <Field label="Code from the email" htmlFor="reset-code">
+          <input
+            id="reset-code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            value={code}
+            maxLength={10}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="123456"
+          />
+        </Field>
+        {error && <FormError>{error}</FormError>}
+        <Submit busy={busy} label="Continue" busyLabel="Checking…" />
+        <button className="account-link" type="button" disabled={wait > 0 || busy} onClick={send}>
+          {wait > 0 ? `Send a new code in ${wait}s` : "Send a new code"}
+        </button>
+        <button
+          className="account-link change-number"
+          type="button"
+          onClick={() => {
+            setStep("email");
+            setCode("");
+            setError("");
+          }}
+        >
+          Use a different email
+        </button>
+      </form>
     );
   }
+
   return (
     <form
       className="account-form"
       noValidate
       onSubmit={async (e) => {
         e.preventDefault();
-        if (!EMAIL_RE.test(email.trim())) {
-          setError("Enter the email you signed up with.");
-          return;
-        }
-        setState("busy");
-        const err = await onSend(email);
-        if (err) {
-          setError(err);
-          setState("idle");
-        } else setState("sent");
+        if (!EMAIL_RE.test(email.trim())) return setError("Enter the email you signed up with.");
+        if (await send()) setStep("code");
       }}
     >
+      {notice && <FormError>{notice}</FormError>}
       <Field label="Email" htmlFor="reset-email">
         <input id="reset-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </Field>
       {error && <FormError>{error}</FormError>}
-      <Submit busy={state === "busy"} label="Send reset link" busyLabel="Sending…" />
+      <Submit busy={busy} label="Email me a code" busyLabel="Sending…" />
     </form>
   );
 }
@@ -294,7 +410,7 @@ export function SignupType({ onIndividual, onOrganisation }: { onIndividual: () 
           </span>
           <div>
             <strong>Sign up as an individual</strong>
-            <small>For students and people using Ripple personally</small>
+            <small>For anyone using Ripple personally</small>
           </div>
           <Icon name="chevron" />
         </button>
@@ -303,14 +419,14 @@ export function SignupType({ onIndividual, onOrganisation }: { onIndividual: () 
             <Icon name="people" size={29} />
           </span>
           <div>
-            <strong>Sign up as an organisation</strong>
+            <strong>Sign up as a group</strong>
             <small>For universities, councils, charities, and safety teams</small>
           </div>
           <Icon name="chevron" />
         </button>
       </div>
       <p className="form-privacy-note">
-        <Icon name="lock" size={15} /> Your details are private to you. Other students only ever see your first name.
+        <Icon name="lock" size={15} /> Your details are private to you. Other people only ever see your first name.
       </p>
     </>
   );
@@ -511,8 +627,8 @@ export function IndividualSignup({ onSubmit }: { onSubmit: (d: SignUpDetails) =>
         hint={
           f.student === "Yes"
             ? isStudentEmail(f.email) || !f.email
-              ? "Use your university email (ending .ac.uk) to be verified for Walk together."
-              : "This isn't a university email, so you won't be verified for Walk together."
+              ? "With a university email (ending .ac.uk) you can also use the Students only walking option."
+              : "Without a university email you can still walk together, just not with the Students only option."
             : undefined
         }
       >
@@ -602,16 +718,18 @@ export function OrganisationSignup({ onSubmit }: { onSubmit: (d: SignUpDetails) 
     >
       <div className="prototype-form-notice">
         <Icon name="shield" size={16} />
-        <p>Organisation accounts are checked by the Ripple team before they can see any safety data.</p>
+        <p>Group accounts are checked by the Ripple team before they can see any safety data.</p>
       </div>
-      <Field label="Organisation name" htmlFor="organisation-name">
+      <Field label="Group name" htmlFor="organisation-name">
         <input id="organisation-name" autoComplete="organization" value={f.organisation} onChange={(e) => set("organisation", e.target.value)} />
       </Field>
-      <Field label="Organisation type" htmlFor="organisation-type">
+      <Field label="Group type" htmlFor="organisation-type">
         <select id="organisation-type" value={f.type} onChange={(e) => set("type", e.target.value)}>
           <option value="">Choose an option</option>
-          <option>University</option>
+          <option>University or college</option>
           <option>Students&apos; Union</option>
+          <option>Venue or business</option>
+          <option>Community group</option>
           <option>Security provider</option>
           <option>Council</option>
           <option>Charity</option>
@@ -621,7 +739,7 @@ export function OrganisationSignup({ onSubmit }: { onSubmit: (d: SignUpDetails) 
       <Field label="Contact person's full name" htmlFor="organisation-contact-name">
         <input id="organisation-contact-name" autoComplete="name" value={f.contactName} onChange={(e) => set("contactName", e.target.value)} />
       </Field>
-      <Field label="Work email" htmlFor="organisation-email">
+      <Field label="Group email" htmlFor="organisation-email">
         <input id="organisation-email" type="email" autoComplete="email" value={f.email} onChange={(e) => set("email", e.target.value)} />
       </Field>
       <Field label="Contact number" htmlFor="organisation-contact">
@@ -811,7 +929,7 @@ export function EditProfile({
         setError(err ?? "");
       }}
     >
-      <Field label={org ? "Organisation name" : "Full name"} htmlFor="edit-name">
+      <Field label={org ? "Group name" : "Full name"} htmlFor="edit-name">
         <input id="edit-name" value={f.full_name} onChange={(e) => set("full_name", e.target.value)} />
       </Field>
       {org ? (
@@ -837,7 +955,7 @@ export function EditProfile({
             <input type="checkbox" checked={f.is_student} onChange={(e) => set("is_student", e.target.checked)} />
             <span>
               <strong>I&apos;m a student</strong>
-              <small>Needed for Walk together.</small>
+              <small>Lets you use the Students only walking option.</small>
             </span>
           </label>
           {f.is_student && (

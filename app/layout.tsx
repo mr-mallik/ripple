@@ -8,7 +8,7 @@ const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: 
 export const metadata: Metadata = {
   title: { default: "Ripple", template: "%s · Ripple" },
   description:
-    "Ripple links separate reports of harassment on campus into one fast, joined-up response. A HudHackHer 2026 demo using fictional data.",
+    "Ripple is women's safety support: report harassment in seconds, get live heads-ups nearby, and walk home with a verified person.",
   appleWebApp: { capable: true, title: "Ripple", statusBarStyle: "default" },
 };
 

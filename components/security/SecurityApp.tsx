@@ -69,13 +69,13 @@ function Login({ notStaffEmail }: { notStaffEmail: string | null }) {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="flex shrink-0 items-center gap-2">
             <Image src="/brand/ripple-logo.png" alt="Ripple" width={940} height={478} priority className="h-12 w-auto" />
-            <span className="whitespace-nowrap font-display text-lg font-bold text-navy">Security</span>
+            <span className="whitespace-nowrap font-display text-lg font-bold text-navy">Safety team</span>
           </span>
           <DemoBadge />
         </div>
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl font-bold">Staff sign in</h1>
-          <p className="text-muted">Only campus security staff can see reports.</p>
+          <p className="text-muted">Only safety team staff can see reports.</p>
         </div>
 
         {notStaffEmail && (

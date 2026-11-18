@@ -42,7 +42,7 @@ export default function NearbyMap({
     <section className="town-map" aria-labelledby="nearby-activity-h">
       <div className="town-map-heading">
         <div>
-          <p className="eyebrow">{area ?? (loc.source === "device" ? "Around you" : "Queensgate campus")}</p>
+          <p className="eyebrow">{area ?? (loc.source === "device" ? "Around you" : "Default area")}</p>
           <h2 id="nearby-activity-h">Nearby activity</h2>
         </div>
         <span className="live-pill">
@@ -68,7 +68,7 @@ export default function NearbyMap({
             </span>
             <span>
               <i className="legend-you" />
-              {loc.source === "device" ? "You are here" : "Queensgate (location off)"}
+              {loc.source === "device" ? "You are here" : "Location off"}
             </span>
           </div>
         )}

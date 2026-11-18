@@ -179,7 +179,7 @@ export default function Dashboard({ session }: { session: Session }) {
       <header className="flex flex-wrap items-center justify-between gap-3 bg-navy px-4 py-3 text-mist sm:px-6">
         <div className="flex items-center gap-3">
           <Image src="/brand/ripple-logo-light.png" alt="Ripple" width={940} height={478} priority className="h-10 w-auto" />
-          <span className="font-display text-xl font-bold text-paper">Security</span>
+          <span className="font-display text-xl font-bold text-paper">Safety team</span>
           <DemoBadge dark />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -219,7 +219,7 @@ export default function Dashboard({ session }: { session: Session }) {
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="relative h-[45vh] shrink-0 lg:h-auto lg:flex-1">
           <MapView
-            label="Live campus map of reports, clusters and walks"
+            label="Live map of reports, clusters and walks"
             center={mapCenter}
             recenterKey={recenter}
             zoom={15}
@@ -239,7 +239,7 @@ export default function Dashboard({ session }: { session: Session }) {
             className={`${btn.small} absolute right-3 top-3 z-[400] shadow`}
             onClick={() => focus(loc.position)}
           >
-            {loc.source === "device" ? "My location" : "Queensgate campus"}
+            {loc.source === "device" ? "My location" : "Default area"}
           </button>
         </div>
 
@@ -412,7 +412,7 @@ function Overview({
                     </span>
                     <span className={`text-sm ${w.status === "help" ? "text-white" : "text-ink"}`}>
                       {w.mode === "together"
-                        ? `With a verified student${w.companion_name ? ` (${w.companion_name})` : ""}`
+                        ? `With a verified user${w.companion_name ? ` (${w.companion_name})` : ""}`
                         : w.mode === "shared"
                           ? "Route shared with a trusted contact"
                           : "Walking alone, followed by security"}
@@ -444,8 +444,16 @@ function Overview({
                   <span className="text-xs text-muted">{timeAgo(f.created_at, now)}</span>
                 </div>
                 <span className="text-sm text-ink">
-                  {f.contact} · prefers {f.preferred_contact === "either" ? "phone or email" : f.preferred_contact}
+                  {[f.age ? `Age ${f.age}` : null, f.gender, f.contact].filter(Boolean).join(" · ")}
                 </span>
+                {f.address && <span className="text-sm text-muted">{f.address}</span>}
+                {(f.incident_date || f.incident_place) && (
+                  <span className="text-sm font-semibold text-navy">
+                    {[f.incident_date ? new Date(f.incident_date).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null, f.incident_place]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                )}
                 {f.statement && <p className="text-sm text-ink">{f.statement}</p>}
                 <span className="text-xs text-muted">
                   Ref {reportRef(f.report_id)}
@@ -710,8 +718,8 @@ function ClusterDetail({
                 .filter((f) => f.report_id === r.id)
                 .map((f) => (
                   <span key={f.id} className="rounded-xl bg-teal-wash p-2 text-xs text-teal-deep">
-                    Formal request from {f.full_name} · {f.contact} · prefers{" "}
-                    {f.preferred_contact === "either" ? "phone or email" : f.preferred_contact}
+                    Formal report from {f.full_name} · {f.contact}
+                    {f.incident_place ? ` · ${f.incident_place}` : ""}
                     {f.support_person ? " · bringing a support person" : ""}
                   </span>
                 ))}
@@ -747,7 +755,7 @@ function ClusterDetail({
 const SCRIPT: { delay: number; north: number; east: number; category: ReportCategory; details: string | null }[] = [
   { delay: 0, north: 60, east: -40, category: "grabbed", details: "Someone grabbed my arm by the library entrance, then walked off fast." },
   { delay: 2500, north: 900, east: 700, category: "verbal", details: "Shouting from a car." },
-  { delay: 5000, north: -70, east: 110, category: "followed", details: "A man followed me from the bus stop towards campus." },
+  { delay: 5000, north: -70, east: 110, category: "followed", details: "A man followed me from the bus stop towards the station." },
   { delay: 8000, north: 140, east: 60, category: "grabbed", details: "Grabbed from behind on the path. He ran towards the ring road." },
   { delay: 11000, north: -20, east: -150, category: "verbal", details: null },
 ];
