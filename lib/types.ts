@@ -58,7 +58,83 @@ export type Walk = {
   status: WalkStatus;
   created_at: string;
   ended_at: string | null;
+  mode?: "solo" | "together" | "shared";
+  companion_name?: string | null;
+  request_id?: string | null;
+  feedback?: "good" | "not_good" | null;
 };
+
+export type Visibility = "all" | "women" | "institution" | "hidden";
+
+export type Profile = {
+  user_id: string;
+  account_type: "individual" | "organisation";
+  full_name: string;
+  gender: string | null;
+  age: number | null;
+  contact_number: string | null;
+  address: string | null;
+  location_permission: "always" | "while_using" | null;
+  is_student: boolean;
+  institution: string | null;
+  organisation_type: string | null;
+  contact_person: string | null;
+  visibility: Visibility;
+  walk_visible: boolean;
+  approved: boolean;
+};
+
+export type NearbyWalker = {
+  user_id: string;
+  first_name: string;
+  initials: string;
+  destination: string;
+  minutes_away: number;
+};
+
+export type WalkRequestStatus = "pending" | "accepted" | "declined" | "cancelled" | "started" | "ended";
+
+export type WalkRequest = {
+  id: string;
+  from_user: string;
+  to_user: string;
+  from_name: string;
+  to_name: string;
+  destination: string;
+  minutes_away: number | null;
+  meeting_point: string | null;
+  status: WalkRequestStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type TrustedContact = { id: string; name: string; phone: string };
+export type Block = { blocked_id: string; blocked_name: string };
+
+export type FormalRequest = {
+  id: string;
+  report_id: string;
+  full_name: string;
+  contact: string;
+  preferred_contact: "phone" | "email" | "either";
+  statement: string | null;
+  support_person: boolean;
+  created_at: string;
+};
+
+export type StudentConcern = {
+  id: string;
+  reported_name: string;
+  reason: string;
+  details: string | null;
+  created_at: string;
+};
+
+/** A short reference a student can quote to security, e.g. "3F9A-12C0". */
+export function reportRef(id: string) {
+  const s = id.replace(/-/g, "").slice(0, 8).toUpperCase();
+  return `${s.slice(0, 4)}-${s.slice(4)}`;
+}
 
 export const CATEGORY_LABEL: Record<ReportCategory, string> = {
   grabbed: "Grabbed or touched",

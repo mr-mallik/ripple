@@ -5,16 +5,16 @@
   --card: #fffdf9;
   --ink: #3a4654;
   --muted: #5a6573;
-  --navy: #10263a;
-  --navy-2: #1b3a55;
-  --mist: #c9d6e3;
+  --navy: #2e1a45;
+  --navy-2: #44275f;
+  --mist: #ddd0ea;
   --coral: #d9534a;
   --coral-deep: #a93a30;
   --coral-soft: #f4a28c;
   --coral-wash: #fbe9e4;
-  --teal: #2a8c82;
-  --teal-deep: #1f6b63;
-  --teal-wash: #e3f1ef;
+  --teal: #6b3f94;
+  --teal-deep: #55307a;
+  --teal-wash: #f1eaf8;
   --line: #e8e3d8;
   --amber: #b26a00;
   --amber-wash: #fff1d6;
@@ -115,4 +115,11 @@
 
 .leaflet-container {
   font-family: var(--font-inter), Arial, sans-serif;
+}
+
+/* Brand colours from the Ripple logo. */
+:root {
+  --brand-lavender: #6b3f94;
+  --brand-blush: #f3c6d8;
+  --brand-pink: #ff70c1;
 }

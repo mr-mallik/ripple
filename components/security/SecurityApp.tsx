@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import { DemoBadge, Spinner, btn } from "@/components/ui";
 import { getSecurityClient } from "@/lib/supabase";
@@ -65,11 +66,10 @@ function Login({ notStaffEmail }: { notStaffEmail: string | null }) {
   return (
     <main className="flex flex-1 items-center justify-center bg-navy px-4 py-12">
       <div className="flex w-full max-w-md flex-col gap-6 rounded-3xl bg-card p-8">
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon.svg" alt="" width={32} height={32} className="rounded-lg" />
-            <span className="font-display text-xl font-bold text-navy">Ripple Security</span>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="flex shrink-0 items-center gap-2">
+            <Image src="/brand/ripple-logo.png" alt="Ripple" width={940} height={478} priority className="h-12 w-auto" />
+            <span className="whitespace-nowrap font-display text-lg font-bold text-navy">Security</span>
           </span>
           <DemoBadge />
         </div>

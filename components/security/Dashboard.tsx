@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import type { Session } from "@supabase/supabase-js";
 import MapView, { type MapFeature } from "@/components/MapView";
 import { DemoBadge, btn } from "@/components/ui";
@@ -8,8 +9,11 @@ import { getSecurityClient } from "@/lib/supabase";
 import { clock, distanceMetres, offset, timeAgo, useDeviceLocation, useNow, type LatLng } from "@/lib/geo";
 import {
   CATEGORY_LABEL,
+  reportRef,
   type Cluster,
   type ClusterEvent,
+  type FormalRequest,
+  type StudentConcern,
   type Report,
   type ReportCategory,
   type Walk,
@@ -34,6 +38,8 @@ export default function Dashboard({ session }: { session: Session }) {
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [walks, setWalks] = useState<Walk[]>([]);
   const [staffNames, setStaffNames] = useState<Record<string, string>>({});
+  const [formal, setFormal] = useState<FormalRequest[]>([]);
+  const [concerns, setConcerns] = useState<StudentConcern[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [flash, setFlash] = useState<
     { cluster: Cluster; kind: "new" } | { cluster: Cluster; kind: "grew"; added: number } | null
@@ -55,12 +61,21 @@ export default function Dashboard({ session }: { session: Session }) {
 
   const load = useCallback(async () => {
     const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
-    const [r, c, w, s] = await Promise.all([
+    const weekAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+    const [r, c, w, s, fr, sc] = await Promise.all([
       supabase.from("reports").select(REPORT_COLS).gte("created_at", since).order("created_at", { ascending: false }).limit(500),
       supabase.from("clusters").select("*").gte("last_report_at", since).order("last_report_at", { ascending: false }),
       supabase.from("walks").select("*").gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("staff").select("user_id, display_name"),
+      supabase.from("formal_requests").select("*").gte("created_at", weekAgo).order("created_at", { ascending: false }),
+      supabase
+        .from("student_concerns")
+        .select("id, reported_name, reason, details, created_at")
+        .gte("created_at", weekAgo)
+        .order("created_at", { ascending: false }),
     ]);
+    setFormal((fr.data as FormalRequest[]) ?? []);
+    setConcerns((sc.data as StudentConcern[]) ?? []);
     const nextClusters = (c.data as Cluster[]) ?? [];
     setReports((r.data as Report[]) ?? []);
     setClusters(nextClusters);
@@ -97,6 +112,8 @@ export default function Dashboard({ session }: { session: Session }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "clusters" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "cluster_events" }, reload)
       .on("postgres_changes", { event: "*", schema: "public", table: "walks" }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "formal_requests" }, reload)
+      .on("postgres_changes", { event: "*", schema: "public", table: "student_concerns" }, reload)
       .subscribe();
     return () => {
       if (t) clearTimeout(t);
@@ -145,7 +162,7 @@ export default function Dashboard({ session }: { session: Session }) {
         id: `walk:${w.id}`,
         lat: w.last_lat,
         lng: w.last_lng,
-        color: w.status === "help" ? "#D9534A" : overdue ? "#B26A00" : "#2A8C82",
+        color: w.status === "help" ? "#D9534A" : overdue ? "#B26A00" : "#6B3F94",
         title: `Walk to ${w.destination}${w.status === "help" ? " · HELP" : overdue ? " · overdue" : ""}`,
       });
     }
@@ -161,9 +178,8 @@ export default function Dashboard({ session }: { session: Session }) {
     <div className="flex h-dvh flex-col bg-paper">
       <header className="flex flex-wrap items-center justify-between gap-3 bg-navy px-4 py-3 text-mist sm:px-6">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/icon.svg" alt="" width={32} height={32} className="rounded-lg" />
-          <span className="font-display text-xl font-bold text-paper">Ripple Security</span>
+          <Image src="/brand/ripple-logo-light.png" alt="Ripple" width={940} height={478} priority className="h-10 w-auto" />
+          <span className="font-display text-xl font-bold text-paper">Security</span>
           <DemoBadge dark />
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -238,6 +254,7 @@ export default function Dashboard({ session }: { session: Session }) {
             <ClusterDetail
               cluster={selectedCluster}
               reports={reports.filter((r) => r.cluster_id === selectedCluster.id)}
+              formal={formal}
               staffNames={staffNames}
               me={me}
               now={now}
@@ -250,6 +267,8 @@ export default function Dashboard({ session }: { session: Session }) {
               clusters={clusters}
               reports={reports}
               walks={activeWalks}
+              formal={formal}
+              concerns={concerns}
               staffNames={staffNames}
               now={now}
               onSelect={(c) => {
@@ -280,7 +299,7 @@ function Legend() {
   const items = [
     { c: "#D9534A", t: "Report" },
     { c: "#A93A30", t: "Linked report" },
-    { c: "#2A8C82", t: "Walk" },
+    { c: "#6B3F94", t: "Walk" },
     { c: "#B26A00", t: "Overdue / acknowledged" },
   ];
   return (
@@ -317,6 +336,8 @@ function Overview({
   clusters,
   reports,
   walks,
+  formal,
+  concerns,
   staffNames,
   now,
   onSelect,
@@ -325,6 +346,8 @@ function Overview({
   clusters: Cluster[];
   reports: Report[];
   walks: Walk[];
+  formal: FormalRequest[];
+  concerns: StudentConcern[];
   staffNames: Record<string, string>;
   now: number;
   onSelect: (c: Cluster) => void;
@@ -369,7 +392,7 @@ function Overview({
         )}
       </Section>
 
-      <Section title="Walk-with-me">
+      <Section title="Walks">
         {sortedWalks.length === 0 ? (
           <Empty>No one is on a walk right now.</Empty>
         ) : (
@@ -387,6 +410,13 @@ function Overview({
                     <span className={`font-semibold ${w.status === "help" ? "text-white" : "text-navy"}`}>
                       To {w.destination}
                     </span>
+                    <span className={`text-sm ${w.status === "help" ? "text-white" : "text-ink"}`}>
+                      {w.mode === "together"
+                        ? `With a verified student${w.companion_name ? ` (${w.companion_name})` : ""}`
+                        : w.mode === "shared"
+                          ? "Route shared with a trusted contact"
+                          : "Walking alone, followed by security"}
+                    </span>
                     <span className={`text-sm ${w.status === "help" ? "text-white" : "text-muted"}`}>
                       {w.status === "help"
                         ? "Asked for help · go to their last location"
@@ -398,6 +428,50 @@ function Overview({
                 </li>
               );
             })}
+          </ul>
+        )}
+      </Section>
+
+      <Section title="Formal report requests">
+        {formal.length === 0 ? (
+          <Empty>No formal report requests in the last 7 days.</Empty>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {formal.map((f) => (
+              <li key={f.id} className="flex flex-col gap-1 rounded-2xl border-l-[6px] border-teal bg-card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-navy">{f.full_name}</span>
+                  <span className="text-xs text-muted">{timeAgo(f.created_at, now)}</span>
+                </div>
+                <span className="text-sm text-ink">
+                  {f.contact} · prefers {f.preferred_contact === "either" ? "phone or email" : f.preferred_contact}
+                </span>
+                {f.statement && <p className="text-sm text-ink">{f.statement}</p>}
+                <span className="text-xs text-muted">
+                  Ref {reportRef(f.report_id)}
+                  {f.support_person ? " · Wants to bring a support person" : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      <Section title="Concerns about walk buddies">
+        {concerns.length === 0 ? (
+          <Empty>No concerns raised in the last 7 days.</Empty>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {concerns.map((c) => (
+              <li key={c.id} className="flex flex-col gap-1 rounded-2xl bg-card p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-navy">{c.reported_name}</span>
+                  <span className="text-xs text-muted">{timeAgo(c.created_at, now)}</span>
+                </div>
+                <span className="text-sm text-ink">{c.reason}</span>
+                {c.details && <p className="text-sm text-ink">{c.details}</p>}
+              </li>
+            ))}
           </ul>
         )}
       </Section>
@@ -419,8 +493,9 @@ function Overview({
                   </div>
                   {r.details && <span className="line-clamp-2 text-sm text-ink">{r.details}</span>}
                   <span className="text-xs text-muted">
-                    {r.cluster_id ? "In a cluster" : "Single report"}
+                    Ref {reportRef(r.id)} · {r.cluster_id ? "In a cluster" : "Single report"}
                     {r.is_anonymous ? " · Anonymous" : " · Open to follow-up"}
+                    {r.wants_formal_report ? " · Wants a formal report" : ""}
                     {r.is_demo ? " · Demo" : ""}
                   </span>
                 </button>
@@ -463,6 +538,7 @@ const EVENT_LABEL: Record<ClusterEvent["kind"], string> = {
 function ClusterDetail({
   cluster,
   reports,
+  formal,
   staffNames,
   me,
   now,
@@ -472,6 +548,7 @@ function ClusterDetail({
 }: {
   cluster: Cluster;
   reports: Report[];
+  formal: FormalRequest[];
   staffNames: Record<string, string>;
   me: string;
   now: number;
@@ -554,7 +631,7 @@ function ClusterDetail({
             {s.followUp > 0 && `${s.followUp} ${s.followUp === 1 ? "is" : "are"} open to follow-up in the app.`}
           </p>
         )}
-        <p className="text-sm text-[#9fb3c6]">
+        <p className="text-sm text-[#cdbfe0]">
           Assigned to {cluster.assigned_to ? (staffNames[cluster.assigned_to] ?? "staff") : "no one yet"}.
         </p>
       </section>
@@ -626,9 +703,18 @@ function ClusterDetail({
               </div>
               {r.details ? <p className="text-sm text-ink">{r.details}</p> : <p className="text-sm text-muted">No details given.</p>}
               <span className="text-xs text-muted">
-                {r.is_anonymous ? "Anonymous" : "Open to follow-up"}
+                Ref {reportRef(r.id)} · {r.is_anonymous ? "Anonymous" : "Open to follow-up"}
                 {r.wants_formal_report ? " · Wants a formal report" : ""}
               </span>
+              {formal
+                .filter((f) => f.report_id === r.id)
+                .map((f) => (
+                  <span key={f.id} className="rounded-xl bg-teal-wash p-2 text-xs text-teal-deep">
+                    Formal request from {f.full_name} · {f.contact} · prefers{" "}
+                    {f.preferred_contact === "either" ? "phone or email" : f.preferred_contact}
+                    {f.support_person ? " · bringing a support person" : ""}
+                  </span>
+                ))}
             </li>
           ))}
         </ul>
